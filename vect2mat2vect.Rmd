@@ -1,0 +1,195 @@
+---
+title: "Benchmarks: vect2mat2vect"
+output:
+  html_notebook:
+    collapsed: no
+    theme: united
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+---
+
+This notebook is all about benchmarking some R code used in this package.
+
+Hardware / Software used:
+
+* Intel i7-4600U
+* Compilation flags for C/C++: `-O2 -Wall $(DEBUGFLAG) -mtune=core2` (R's defaults)
+* Windows Server 2012 R2
+* R 3.3.2 + Intel MKL
+
+# Libraries
+
+```{r init}
+library(data.table)
+library(microbenchmark)
+library(Rcpp)
+library(ggplot2)
+library(plotly)
+```
+
+```{r based}
+
+# Helper function to print data well in tables
+print_well <- function(data, digits = 6) {
+  
+  # To milliseconds
+  data <- data / 1000000
+  
+  # Sprintf helper
+  sprintf_helper <- paste0("%.0", digits, "f")
+  
+  cat("| Min | 25% | 50% | 75% | Max | Mean |  \n| --: | --: | --: | --: | --: | --: |  \n| ", sprintf(sprintf_helper, min(data)), " | ", sprintf(sprintf_helper, quantile(data, probs = 0.25)), " | ", sprintf(sprintf_helper, median(data)), " | ", sprintf(sprintf_helper, quantile(data, probs = 0.75)), " | ", sprintf(sprintf_helper, max(data)), " | ", sprintf(sprintf_helper, mean(data)), " |  \n", sep = "")
+  
+  return(data)
+  
+}
+
+# Test case function
+# Arguments renamed to avoid recursive clash
+test_case <- function(f, preds, labels, eps) {
+  cat("Test case: ", paste(do.call(f, list(preds = preds[1:50],
+                                           labels = labels[1:5])), collapse = ", "), "  \n")
+}
+
+```
+
+# Benchmarking Vector to Matrix to Vector
+
+For a 10-class vector of 100,000 observations:
+
+* Vector A of length=(100000 * 10)
+* Vector B of length=(100000) with 10 classes
+
+```
+A = [1:1, 1:2, 1:3, 1:4... 1:10, 2:1, 2:2, 2:3..., 100000:8, 100000:9, 100000:10]
+B = [3, 5, 9, 1, 4, 8, 6, ...]
+```
+
+Get the following Vector C:
+
+```
+C = [1:4, 2:6, 3:10, 4:2, 5:5, 6:9, 7:7, ...]
+```
+
+# Initialize data
+
+```{r bench1}
+# Generate random data
+set.seed(11111)
+data <- runif(10000000, 0, 1)
+labels <- round(runif(1000000, 0, 9), digits = 0)
+
+# Background truth example
+array(data[1:50], dim = c(10, 5))
+labels[1:5]
+data[c(1 + labels[1], 11 + labels[2], 21 + labels[3], 31 + labels[4], 41 + labels[5])]
+
+# How many digits for benchmarking in milliseconds
+my_digits <- 6L
+
+# How many runs for benchmarking?
+my_runs <- 1000L
+```
+
+# Benchmarks
+
+```{r bench2, results="asis"}
+
+# ===== BLOCK 1 =====
+faster1 <- function(preds, labels) {
+  data_len <- length(preds)
+  label_len <- length(labels)
+  len_div <- data_len / label_len
+  dims <- c(len_div, label_len)
+  label_long <- labels + 1
+  mat_out <- cbind(label_long, 1:label_len)
+  vec_out <- array(preds, dim = dims)[mat_out]
+  return(vec_out)
+}
+test_case(faster1, preds = data, labels = labels)
+data1 <- print_well(microbenchmark(faster1(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 2 =====
+faster2 <- function(preds, labels) {
+  data_len <- length(preds)
+  label_len <- length(labels)
+  vec_out <- array(preds, dim = c(data_len / label_len, label_len))[cbind(labels + 1, 1:label_len)]
+  return(vec_out)
+}
+test_case(faster2, preds = data, labels = labels)
+data2 <- print_well(microbenchmark(faster2(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 3 =====
+faster3 <- function(preds, labels) {
+  return(array(preds, dim = c(length(preds) / length(labels), length(labels)))[cbind(labels + 1, 1:length(labels))])
+}
+test_case(faster3, preds = data, labels = labels)
+data3 <- print_well(microbenchmark(faster3(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 4 =====
+faster4 <- function(preds, labels) {
+  return(array(preds, dim = c(length(preds) / length(labels), length(labels)))[matrix(c(labels + 1, 1:length(labels)), ncol = 2)])
+}
+test_case(faster4, preds = data, labels = labels)
+data4 <- print_well(microbenchmark(faster4(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 5 =====
+faster5 <- function(preds, labels) {
+  return(preds[((0:(length(labels) - 1)) * (length(preds) / length(labels))) + labels + 1])
+}
+test_case(faster5, preds = data, labels = labels)
+data5 <- print_well(microbenchmark(faster5(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 6 =====
+cppFunction("NumericVector faster6(NumericVector preds, NumericVector labels) {
+  int labels_size = labels.size();
+  NumericVector selected(labels_size);
+  selected = (preds.size() / labels_size) * seq(0, labels_size - 1);
+  selected = selected + labels;
+  NumericVector to_return(labels_size);
+  to_return = preds[selected];
+  return to_return;
+}")
+test_case(faster6, preds = data, labels = labels)
+data6 <- print_well(microbenchmark(faster6(data, labels), times = my_runs)$time, digits = my_digits)
+
+```
+
+# Summary Results
+
+```{r bench3}
+
+data_time <- data.table(rbindlist(list(data.frame(Time = data1, Bench = "faster1"),
+                                       data.frame(Time = data2, Bench = "faster2"),
+                                       data.frame(Time = data3, Bench = "faster3"),
+                                       data.frame(Time = data4, Bench = "faster4"),
+                                       data.frame(Time = data5, Bench = "faster5"),
+                                       data.frame(Time = data6, Bench = "faster6"))))
+data_time <- data_time[, t_mean := mean(Time), by = Bench]
+data_time <- data_time[, t_median := median(Time), by = Bench]
+data_time$Benchs <- data_time$Bench 
+levels(data_time$Benchs) <- paste0("faster", 1:6, "= [", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(min(Time)), by = Bench]$V1), ", ", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(max(Time)), by = Bench]$V1), "], mean=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(mean(Time)), by = Bench]$V1), ", median=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(median(Time)), by = Bench]$V1))
+
+my_time <- data_time[, list(min(Time), quantile(Time, probs = 0.25), median(Time), quantile(Time, probs = 0.75), max(Time), mean(Time)), by = Bench]
+colnames(my_time) <- c("Function", "Min", "25%", "50%", "75%", "Max", "Mean")
+my_time <- my_time[order(Mean, decreasing = FALSE), ]
+print(my_time, digits = 6)
+
+```
+
+# Plot Results
+
+```{r bench4, fig.height=6, fig.width=10}
+
+ggplotly(ggplot(data = data_time, aes(x = Time)) + geom_histogram(aes(y = ..density..), bins = 20, color = "darkblue", fill = "lightblue") + facet_wrap(~ Benchs, ncol = 2) + geom_vline(aes(xintercept = t_mean), color = "blue", linetype = "dashed", size = 2) + geom_vline(aes(xintercept = t_median), color = "red", linetype = "dashed", size = 2) + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+
+```
+
+```{r bench5, fig.height=6, fig.width=10}
+ggplotly(ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_histogram(aes(y = ..density..), bins = 100, position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+```
+
+```{r bench6, fig.height=6, fig.width=10}
+ggplotly(ggplot(data = data_time, aes(x = Time, y = ..count.., fill = Bench)) + geom_density(position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+```
