@@ -25,7 +25,6 @@ library(data.table)
 library(microbenchmark)
 library(Rcpp)
 library(ggplot2)
-library(plotly)
 ```
 
 ```{r based}
@@ -97,10 +96,20 @@ E = Mean of logloss(D, B)
 # Initialize data
 
 ```{r bench1}
+
+# How many digits for benchmarking in milliseconds
+my_digits <- 6L
+
+# How many runs for benchmarking?
+my_runs <- 1000L
+
+# How many observations?
+my_obs <- 1000000L
+
 # Generate random data
 set.seed(11111)
-data <- runif(10000000, 0, 1)
-labels <- round(runif(1000000, 0, 9), digits = 0)
+data <- runif(my_obs * 10, 0, 1)
+labels <- round(runif(my_obs, 0, 9), digits = 0)
 
 # Background truth example (no clamping though)
 array(data[1:50], dim = c(10, 5))
@@ -109,11 +118,6 @@ data[c(1 + labels[1], 11 + labels[2], 21 + labels[3], 31 + labels[4], 41 + label
 -log(1 - data[c(1 + labels[1], 11 + labels[2], 21 + labels[3], 31 + labels[4], 41 + labels[5])])
 mean(-log(1 - data[c(1 + labels[1], 11 + labels[2], 21 + labels[3], 31 + labels[4], 41 + labels[5])]))
 
-# How many digits for benchmarking in milliseconds
-my_digits <- 6L
-
-# How many runs for benchmarking?
-my_runs <- 1000L
 ```
 
 # Benchmarks
@@ -187,16 +191,23 @@ print(my_time, digits = 6)
 
 ```{r bench4, fig.height=6, fig.width=10}
 
-ggplotly(ggplot(data = data_time, aes(x = Time)) + geom_histogram(aes(y = ..density..), bins = 20, color = "darkblue", fill = "lightblue") + facet_wrap(~ Benchs, ncol = 2) + geom_vline(aes(xintercept = t_mean), color = "blue", linetype = "dashed", size = 2) + geom_vline(aes(xintercept = t_median), color = "red", linetype = "dashed", size = 2) + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+ggplot(data = data_time, aes(x = Time)) + geom_histogram(aes(y = ..density..), bins = 20, color = "darkblue", fill = "lightblue") + facet_wrap(~ Benchs, ncol = 2) + geom_vline(aes(xintercept = t_mean), color = "blue", linetype = "dashed", size = 2) + geom_vline(aes(xintercept = t_median), color = "red", linetype = "dashed", size = 2) + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
 
 ```
 
 ```{r bench5, fig.height=6, fig.width=10}
-ggplotly(ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_histogram(aes(y = ..density..), bins = 100, position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_histogram(aes(y = ..density..), bins = 100, position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
 ```
 
 ```{r bench6, fig.height=6, fig.width=10}
-ggplotly(ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_density(position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
+ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_density(position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
+```
+
+```{r bench7, fig.height=6, fig.width=10}
+
+data_time$MilObs <- (1000 / data_time$Time) * my_obs / 1000000
+ggplot(data_time[, .(Bench, MilObs)], aes(x = Bench, y = MilObs, fill = Bench)) + geom_boxplot() + labs(x = "Benchmark", y = "Throughput (Million Obs./s)") + theme_bw()
+
 ```
 
 # Scaling Benchmarks

@@ -1,4 +1,4 @@
-# R_benchmarking
+# R / Rcpp Benchmarking for Machine Learning Metrics
 
 Benchmarking R and C++ for Machine Learning Metrics.
 
@@ -6,7 +6,7 @@ Code is provided here to copy & paste very quickly if needed to use immediately 
 
 Hardware / Software used:
 * Intel i7-4600U
-* Compilation flags for C/C++: -O2 -mtune=core2 (R’s defaults)
+* Compilation flags for C/C++: `-O2 -mtune=core2` (R’s defaults)
 * Windows 8.1 64-bit
 * R 3.3.2 + Intel MKL
 * Rtools 34 + gcc 4.9
@@ -19,16 +19,16 @@ Hardware / Software used:
 
 Reported numbers are both for log10 weighted average (up) and peak performance (down):
 
-* The multiplication factor `(R / Rcpp)` for the `Throughput+` (over 1 means Rcpp faster, lower than 1 means R faster)
+* The multiplication factor `(Rcpp / R)` for the `Throughput+` (over 1 means Rcpp faster, lower than 1 means R faster)
 * The throughput observations per second
 * The peak vector size
 
 | Benchmark | Throughput+ | Rcpp Throughput | R Throughput | Rcpp Peak | R Peak
 | ------ | ---: | ---: | ---: | ---: | ---: |
-| Binary Logarithmic Loss | log10 W Avg: 1.192x<br>Peak Avg: 1.164x | 18,244,619 obs/s<br>19,202,150 obs/s | 14,226,607 obs/s<br>16,502,080 obs/s | 1,000 | 10,000 |
-| Multiclass Logarithmic Loss | log10 W Avg: 1.159x<br>Peak Avg: 1.166x | 15,510,039 obs/s<br>17,399,730 obs/s | 12,263,996 obs/s<br>14,918,040 obs/s | 10,000 | 10,000 |
-| Area Under the Curve (ROC) | log10 W Avg: 3.141x<br>Peak Avg: 1.374x | 4,753,981 obs/s<br>9,287,828 obs/s | 3,378,689 obs/s<br>6,760,040 obs/s | 100 | 10,000 |
-| Vector to Matrix to Vect | log10 W Avg: 1.165x<br>Peak Avg: 1.364x | 58,136,870 obs/s<br>86,983,400 obs/s | 43,211,259 obs/s<br>63,784,300 obs/s | 10,000 | 10,000 |
+| Binary Logarithmic Loss | log10 W Avg: **1.224x**<br>Peak Avg: **1.044x** | **18,113,090 obs/s**<br>**19,380,200 obs/s** | **14,801,221 obs/s**<br>**18,557,420 obs/s** | 1,000 | 10,000 |
+| Multiclass Logarithmic Loss | log10 W Avg: **1.234x**<br>Peak Avg: **1.227x** | **14,807,458 obs/s**<br>**16,721,500 obs/s** | **12,000,957 obs/s**<br>**13,631,870 obs/s** | 1,000 | 10,000 |
+| Area Under the Curve (ROC) | log10 W Avg: **1.432x**<br>Peak Avg: **1.266x** | **4,706,947 obs/s**<br>**9,162,998 obs/s** | **3,287,479 obs/s**<br>**7,235,654 obs/s** | 100 | 1,000 |
+| Vector to Matrix to Vector | log10 W Avg: **1.327x**<br>Peak Avg: **1.404x** | **56,359,885 obs/s**<br>**87,803,300 obs/s** | **42,481,015 obs/s**<br>**62,528,900 obs/s** | 10,000 | 10,000 |
 
 ---
 
@@ -36,35 +36,35 @@ Reported numbers are both for log10 weighted average (up) and peak performance (
 
 ---
 
-## Binary Logartihmic Loss: [benchmarks](https://cdn.rawgit.com/Laurae2/R_benchmarking/ffcc7175/logloss.nb.html)
+## Binary Logartihmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/logloss.nb.html)
 
 ### Performance
 
 Reported numbers (from log10 weighted average) are:
 
-* Rcpp is in average **19.211% faster** than R.
-* Rcpp can process the function **2,628** times per hour (**18,244,619** processed observations per second).
-* R can process the function **2,204** times per hour (**14,226,607** processed observations per second).
+* Rcpp is in average **22.376% faster** than R.
+* Rcpp has an estimated average throughput of **18,113,090** observations per second.
+* R has an estimated average throughput of **14,801,221** observations per second.
 * Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
 
 Reported numbers (from the peaks) are:
 * Rcpp function throughput peaks at **1,000** observations per call.
 * R function throughput peaks at **10,000** observations per call.
-* Rcpp is at peak throughput in average **16.362% faster** than R.
-* Rcpp has an estimated maximum throughput of **19,202,150** observations per second.
-* R has an estimated maximum throughput of **16,502,080** observations per second.
+* Rcpp is at peak throughput in average **4.434% faster** than R.
+* Rcpp has an estimated maximum throughput of **19,380,200** observations per second.
+* R has an estimated maximum throughput of **18,557,420** observations per second.
 
-| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Sampling | Pure R Sampling |
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| ~5.000 | log10 W.Avg. | **1.192x** | **1.370  s** | 1.633  s | **18.245 M/s** | 14.227 M/s |
+| ~5.000 | log10 W.Avg. | **1.224x** | --- | --- | **18.113 M/s** | 14.801 M/s |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ~2.000 | 100 | **4.201x** | **7.003 μs** | 29.422 μs | **14.280 M/s** | 3.399 M/s |
-| ~3.000 | 1,000 | **1.496x** | **52.078 μs** | 77.917 μs | **19.202 M/s** | 12.834 M/s |
-| ~4.000 | 10,000 | **1.106x** | **547.915 μs** | 605.984 μs | **18.251 M/s** | 16.502 M/s |
-| ~5.000 | 100,000 | **1.221x** | **5.342 ms** | 6.521 ms | **18.721 M/s** | 15.336 M/s |
-| ~6.000 | 1,000,000 | **1.371x** | **53.538 ms** | 73.397 ms | **18.678 M/s** | 13.625 M/s |
-| ~7.000 | 10,000,000 | **1.212x** | **549.245 ms** | 665.486 ms | **18.207 M/s** | 15.027 M/s |
-| ~8.000 | 100,000,000 | **1.189x** | **5.469  s** | 6.504  s | **18.283 M/s** | 15.376 M/s |
+| ~2.000 | 100 | **4.529x** | **6.887 μs** | 31.192 μs | **14.520 M/s** | 3.206 M/s |
+| ~3.000 | 1,000 | **1.543x** | **51.599 μs** | 79.600 μs | **19.380 M/s** | 12.563 M/s |
+| ~4.000 | 10,000 | 0.983x | 548.412 μs | **538.868 μs** | 18.234 M/s | **18.557 M/s** |
+| ~5.000 | 100,000 | **1.036x** | **5.403 ms** | 5.596 ms | **18.507 M/s** | 17.870 M/s |
+| ~6.000 | 1,000,000 | **1.313x** | **54.333 ms** | 71.330 ms | **18.405 M/s** | 14.019 M/s |
+| ~7.000 | 10,000,000 | **1.208x** | **558.664 ms** | 674.816 ms | **17.900 M/s** | 14.819 M/s |
+| ~8.000 | 100,000,000 | **1.188x** | **5.496  s** | 6.530  s | **18.197 M/s** | 15.314 M/s |
 
 ### Rules (1,000,000 observations)
 
@@ -107,34 +107,34 @@ cppFunction("double Lpp_logloss(NumericVector preds, NumericVector labels, doubl
 
 ---
 
-## Multiclass Logarithmic Loss: [benchmarks](https://cdn.rawgit.com/Laurae2/R_benchmarking/ffcc7175/mlogloss.nb.html)
+## Multiclass Logarithmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/mlogloss.nb.html)
 
 ### Performance
 
 Reported numbers (from log10 weighted average) are:
 
-* Rcpp is in average **15.864% faster** than R.
-* Rcpp can process the function **18,232** times per hour (**15,510,039** processed observations per second).
-* R can process the function **15,736** times per hour (**12,263,996** processed observations per second).
+* Rcpp is in average **23.386% faster** than R.
+* Rcpp has an estimated average throughput of **14,807,458** observations per second.
+* R has an estimated average throughput of **12,000,957** observations per second.
 * Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
 
 Reported numbers (from the peaks) are:
-* Rcpp function throughput peaks at **10,000** observations per call.
+* Rcpp function throughput peaks at **1,000** observations per call.
 * R function throughput peaks at **10,000** observations per call.
-* Rcpp is at peak throughput in average **16.635% faster** than R.
-* Rcpp has an estimated maximum throughput of **17,399,730** observations per second.
-* R has an estimated maximum throughput of **14,918,040** observations per second.
+* Rcpp is at peak throughput in average **22.665% faster** than R.
+* Rcpp has an estimated maximum throughput of **16,721,500** observations per second.
+* R has an estimated maximum throughput of **13,631,870** observations per second.
 
-| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Sampling | Pure R Sampling |
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| ~4.500 | log10 W.Avg. | **1.159x** | **197.456 ms** | 228.780 ms | **15.510 M/s** | 12.264 M/s |
+| ~4.500 | log10 W.Avg. | **1.234x** | --- | --- | **14.807 M/s** | 12.001 M/s |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ~2.000 | 100 | **5.072x** | **7.184 μs** | 36.441 μs | **13.920 M/s** | 2.744 M/s |
-| ~3.000 | 1,000 | **1.368x** | **64.723 μs** | 88.550 μs | **15.451 M/s** | 11.293 M/s |
-| ~4.000 | 10,000 | **1.166x** | **574.722 μs** | 670.329 μs | **17.400 M/s** | 14.918 M/s |
-| ~5.000 | 100,000 | **1.245x** | **6.154 ms** | 7.665 ms | **16.249 M/s** | 13.047 M/s |
-| ~6.000 | 1,000,000 | **1.165x** | **63.798 ms** | 74.316 ms | **15.674 M/s** | 13.456 M/s |
-| ~7.000 | 10,000,000 | **1.158x** | **702.179 ms** | 812.831 ms | **14.241 M/s** | 12.303 M/s |
+| ~2.000 | 100 | **4.527x** | **8.035 μs** | 36.378 μs | **12.445 M/s** | 2.749 M/s |
+| ~3.000 | 1,000 | **1.477x** | **59.803 μs** | 88.320 μs | **16.722 M/s** | 11.322 M/s |
+| ~4.000 | 10,000 | **1.151x** | **637.224 μs** | 733.575 μs | **15.693 M/s** | 13.632 M/s |
+| ~5.000 | 100,000 | **1.139x** | **6.448 ms** | 7.341 ms | **15.509 M/s** | 13.622 M/s |
+| ~6.000 | 1,000,000 | **1.149x** | **64.718 ms** | 74.377 ms | **15.452 M/s** | 13.445 M/s |
+| ~7.000 | 10,000,000 | **1.129x** | **763.214 ms** | 861.487 ms | **13.102 M/s** | 11.608 M/s |
 
 ### Rules (1,000,000 observations)
 
@@ -181,34 +181,34 @@ Rcpp::cppFunction("double Lpp_mlogloss(NumericVector preds, NumericVector labels
 
 ---
 
-## Area Under the Curve (ROC): [benchmarks](https://cdn.rawgit.com/Laurae2/R_benchmarking/ffcc7175/roc.nb.html)
+## Area Under the Curve (ROC): [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/roc.nb.html)
 
 ### Performance
 
 Reported numbers (from log10 weighted average) are:
 
-* Rcpp is in average **214.134% faster** than R.
-* Rcpp can process the function **3,494** times per hour (**4,753,981** processed observations per second).
-* R can process the function **1,112** times per hour (**3,378,689** processed observations per second).
+* Rcpp is in average **43.178% faster** than R.
+* Rcpp has an estimated average throughput of **4,706,947** observations per second.
+* R has an estimated average throughput of **3,287,479** observations per second.
 * Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
 
 Reported numbers (from the peaks) are:
 * Rcpp function throughput peaks at **100** observations per call.
-* R function throughput peaks at **10,000** observations per call.
-* Rcpp is at peak throughput in average **37.393% faster** than R.
-* Rcpp has an estimated maximum throughput of **9,287,828** observations per second.
-* R has an estimated maximum throughput of **6,760,040** observations per second.
+* R function throughput peaks at **1,000** observations per call.
+* Rcpp is at peak throughput in average **26.637% faster** than R.
+* Rcpp has an estimated maximum throughput of **9,162,998** observations per second.
+* R has an estimated maximum throughput of **7,235,654** observations per second.
 
-| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Sampling | Pure R Sampling |
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| ~4.500 | log10 W.Avg. | **3.141x** | **1.030  s** | 3.237  s | **4.754 M/s** | 3.379 M/s |
+| ~4.500 | log10 W.Avg. | **1.432x** | --- | --- | **4.707 M/s** | 3.287 M/s |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ~2.000 | 100 | **2.843x** | **10.767 μs** | 30.612 μs | **9.288 M/s** | 3.267 M/s |
-| ~3.000 | 1,000 | **1.091x** | **138.855 μs** | 151.475 μs | **7.202 M/s** | 6.602 M/s |
-| ~4.000 | 10,000 | 0.952x | 1.555 ms | **1.479 ms** | 6.432 M/s | **6.760 M/s** |
-| ~5.000 | 100,000 | **1.099x** | **20.024 ms** | 22.008 ms | **4.994 M/s** | 4.544 M/s |
-| ~6.000 | 1,000,000 | **1.995x** | **325.062 ms** | 648.615 ms | **3.076 M/s** | 1.542 M/s |
-| ~7.000 | 10,000,000 | **3.237x** | **3.680  s** | 11.912  s | **2.717 K/s** | 0.839 K/s |
+| ~2.000 | 100 | **2.861x** | **10.914 μs** | 31.223 μs | **9.163 M/s** | 3.203 M/s |
+| ~3.000 | 1,000 | 0.987x | 140.019 μs | **138.205 μs** | 7.142 M/s | **7.236 M/s** |
+| ~4.000 | 10,000 | 0.983x | 1.589 ms | **1.562 ms** | 6.292 M/s | **6.400 M/s** |
+| ~5.000 | 100,000 | **1.217x** | **19.980 ms** | 24.309 ms | **5.005 M/s** | 4.114 M/s |
+| ~6.000 | 1,000,000 | **2.109x** | **327.093 ms** | 689.814 ms | **3.057 M/s** | 1.450 M/s |
+| ~7.000 | 10,000,000 | **3.252x** | **3.723  s** | 12.108  s | **2.686 K/s** | 0.826 K/s |
 
 ### Rules (500,000 observations)
 
@@ -257,34 +257,34 @@ cppFunction("double Lpp_ROC(NumericVector preds, NumericVector labels) {
 
 ---
 
-## Vector to Matrix to Vector: [benchmarks](https://cdn.rawgit.com/Laurae2/R_benchmarking/ffcc7175/vect2mat2vect.nb.html)
+## Vector to Matrix to Vector: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/vect2mat2vect.nb.html)
 
 ### Performance
 
 Reported numbers (from log10 weighted average) are:
 
-* Rcpp is in average **16.480% faster** than R.
-* Rcpp can process the function **56,218** times per hour (**58,136,870** processed observations per second).
-* R can process the function **48,264** times per hour (**43,211,259** processed observations per second).
+* Rcpp is in average **32.671% faster** than R.
+* Rcpp has an estimated average throughput of **56,359,885** observations per second.
+* R has an estimated average throughput of **42,481,015** observations per second.
 * Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
 
 Reported numbers (from the peaks) are:
 * Rcpp function throughput peaks at **10,000** observations per call.
 * R function throughput peaks at **10,000** observations per call.
-* Rcpp is at peak throughput in average **36.371% faster** than R.
-* Rcpp has an estimated maximum throughput of **86,983,400** observations per second.
-* R has an estimated maximum throughput of **63,784,300** observations per second.
+* Rcpp is at peak throughput in average **40.420% faster** than R.
+* Rcpp has an estimated maximum throughput of **87,803,300** observations per second.
+* R has an estimated maximum throughput of **62,528,900** observations per second.
 
-| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Sampling | Pure R Sampling |
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| ~4.500 | log10 W.Avg. | **1.165x** | **64.037 ms** | 74.590 ms | **58.137 M/s** | 43.211 M/s |
+| ~4.500 | log10 W.Avg. | **1.327x** | --- | --- | **56.360 M/s** | 42.481 M/s |
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ~2.000 | 100 | **1.973x** | **3.234 μs** | 6.380 μs | **30.923 M/s** | 15.674 M/s |
-| ~3.000 | 1,000 | **2.408x** | **13.138 μs** | 31.636 μs | **76.116 M/s** | 31.610 M/s |
-| ~4.000 | 10,000 | **1.364x** | **114.964 μs** | 156.778 μs | **86.983 M/s** | 63.784 M/s |
-| ~5.000 | 100,000 | **1.187x** | **1.716 ms** | 2.037 ms | **58.260 M/s** | 49.082 M/s |
-| ~6.000 | 1,000,000 | **1.208x** | **17.832 ms** | 21.546 ms | **56.078 M/s** | 46.412 M/s |
-| ~7.000 | 10,000,000 | **1.162x** | **230.417 ms** | 267.676 ms | **43.400 M/s** | 37.359 M/s |
+| ~2.000 | 100 | **2.037x** | **3.294 μs** | 6.711 μs | **30.354 M/s** | 14.901 M/s |
+| ~3.000 | 1,000 | **1.429x** | **15.316 μs** | 21.887 μs | **65.292 M/s** | 45.689 M/s |
+| ~4.000 | 10,000 | **1.404x** | **113.891 μs** | 159.926 μs | **87.803 M/s** | 62.529 M/s |
+| ~5.000 | 100,000 | **1.356x** | **1.671 ms** | 2.266 ms | **59.856 M/s** | 44.136 M/s |
+| ~6.000 | 1,000,000 | **1.269x** | **18.539 ms** | 23.534 ms | **53.942 M/s** | 42.492 M/s |
+| ~7.000 | 10,000,000 | **1.144x** | **240.559 ms** | 275.188 ms | **41.570 M/s** | 36.339 M/s |
 
 ### Rules (1,000,000 observations)
 
