@@ -5,9 +5,8 @@ output:
     collapsed: no
     theme: united
     toc: yes
-    toc_depth: 6
+    toc_depth: 1
     toc_float: yes
-
 ---
 
 This notebook is all about benchmarking some R code used in this package.
@@ -51,7 +50,7 @@ print_well <- function(data, digits = 6) {
 test_case <- function(f, preds, labels, eps) {
   cat("Test case: ", paste(do.call(f, list(preds = preds[1:50],
                                            labels = labels[1:5],
-                                           eps = 1e-15)), collapse = ", "), "  \n")
+                                           eps = 1e-15)), collapse = ", "), "  \n", sep = "")
 }
 
 # Fastest Logloss function
@@ -200,3 +199,79 @@ ggplotly(ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count..,
 ggplotly(ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_density(position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw())
 ```
 
+# Scaling Benchmarks
+
+```{r bench_scale1}
+
+Benchmarker <- function(f, size, runs, digits, name) {
+  
+  data_runs <- list()
+  
+  for (i in 1:length(size)) {
+    set.seed(11111)
+    data <- runif(size[i] * 10, 0, 1)
+    labels <- round(runif(size[i], 0, 9), digits = 0)
+    cat("  \n  \n## ", name, " run: ",format(size[i], big.mark = ",", scientific = FALSE), " samples (", format(runs[i], big.mark = ",", scientific = FALSE), " times)  \n  \n", sep = "")
+    test_case(f, preds = data, labels = labels, eps = 1e-15)
+    cat("  \n")
+    data_runs[[i]] <- print_well(microbenchmark(f(data, labels, eps = 1e-15), times = runs[i])$time, digits = digits)
+    data_runs[[i]] <- data.table(Bench = as.factor(paste0("[", i, "] ", format(size[i], big.mark = ",", scientific = FALSE))), Function = as.factor(name), Time = data_runs[[i]])
+    gc(verbose = FALSE)
+  }
+  
+  return(data_runs)
+  
+}
+
+bench_size <- c(100, 1000, 10000, 100000, 1000000, 10000000)
+bench_runs <- c(10000, 5000, 1000, 500, 100, 50)
+
+```
+
+```{r bench_scale2, results="asis"}
+
+run1 <- Benchmarker(faster3, bench_size, bench_runs, my_digits, "Pure R")
+run2 <- Benchmarker(faster4, bench_size, bench_runs, my_digits, "Rcpp")
+
+```
+
+# Scaling Results
+
+```{r bench_scale3}
+
+run1_all <- rbindlist(run1)
+run2_all <- rbindlist(run2)
+run_all <- rbind(run1_all, run2_all)
+run_all$Repeats <- rep(inverse.rle(list(lengths = bench_runs, values = bench_size)), 2)
+run_all$MilObs <- (1000 / run_all$Time) * run_all$Repeats / 1000000
+run_time <- run_all[, list(quantile(Time, probs = 0.05), median(Time), quantile(Time, probs = 0.95), mean(Time)), by = list(Function, Bench)]
+colnames(run_time) <- c("Function", "Benchmark", "5%", "50%", "95%", "Mean")
+run_time$`Mil.Obs/s` <- (1000 / run_time$Mean) * bench_size / 1000000
+run_time$`5%` <- format(run_time$`5%`, digits = 6, scientific = FALSE)
+run_time$`50%` <- format(run_time$`50%`, digits = 6, scientific = FALSE)
+run_time$`95%` <- format(run_time$`95%`, digits = 6, scientific = FALSE)
+run_time$Mean <- format(run_time$Mean, digits = 6, scientific = FALSE)
+run_time$`Mil.Obs/s` <- format(run_time$`Mil.Obs/s`, digits = 6, scientific = FALSE)
+
+print(run_time[1:(nrow(run_time) / 2)])
+print(run_time[(nrow(run_time) / 2 + 1):nrow(run_time)])
+
+```
+
+```{r bench_scale4, fig.height=6, fig.width=10}
+
+ggplot(run_all, aes(x = Bench, y = Time, color = Function, fill = Bench)) + geom_boxplot() + scale_y_log10(labels = scales::comma, breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) + stat_summary(fun.y = mean, geom = "line", aes(group = Function)) + stat_summary(fun.y = mean, geom = "point", aes(group = Function)) + labs(x = "Benchmark", y = "Time (Milliseconds)") + theme_bw()
+
+```
+
+```{r bench_scale5, fig.height=6, fig.width=10}
+
+ggplot(run_all, aes(x = Bench, y = MilObs, color = Function, fill = Bench)) + geom_boxplot() + scale_y_log10(labels = scales::comma, breaks = c(1, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25), limits = c(1, NA)) + stat_summary(fun.y = mean, geom = "line", aes(group = Function)) + stat_summary(fun.y = mean, geom = "point", aes(group = Function)) + labs(x = "Benchmark", y = "Throughput (Million Obs./s)") + theme_bw()
+
+```
+
+```{r bench_scale6, fig.height=6, fig.width=10}
+
+ggplot(data = run_all, aes(x = MilObs, color = Function, fill = Function, group = Function)) + coord_flip() + stat_ecdf(aes(ymin = ..y.., ymax = 1), alpha = 0.5, geom = "ribbon") + stat_ecdf(geom = "line", size = 2, alpha = 0.75, pad = FALSE) + labs(x = "Throughput (Million Obs./s)", y = "Percentile") + facet_wrap(~ Bench, dir = "h", ncol = 2, scales = "free") + theme_bw()
+
+```
