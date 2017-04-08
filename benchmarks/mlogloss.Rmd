@@ -73,7 +73,7 @@ cppFunction("NumericVector Lpp_vec2mat2vec(NumericVector preds, NumericVector la
 
 ```
 
-# Benchmarking Clamped Vector to Logloss
+# Benchmarking
 
 For a 10-class vector of 1,000,000 observations:
 

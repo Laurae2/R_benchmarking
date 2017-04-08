@@ -29,6 +29,9 @@ Reported numbers are both for log10 weighted average (up) and peak performance (
 | Multiclass Logarithmic Loss | log10 W Avg: **1.234x**<br>Peak Avg: **1.227x** | **14,807,458 obs/s**<br>**16,721,500 obs/s** | **12,000,957 obs/s**<br>**13,631,870 obs/s** | 1,000 | 10,000 |
 | Area Under the Curve (ROC) | log10 W Avg: **1.432x**<br>Peak Avg: **1.266x** | **4,706,947 obs/s**<br>**9,162,998 obs/s** | **3,287,479 obs/s**<br>**7,235,654 obs/s** | 100 | 1,000 |
 | Vector to Matrix to Vector | log10 W Avg: **1.327x**<br>Peak Avg: **1.404x** | **56,359,885 obs/s**<br>**87,803,300 obs/s** | **42,481,015 obs/s**<br>**62,528,900 obs/s** | 10,000 | 10,000 |
+| Sine | log10 W Avg: **1.083x**<br>Peak Avg: **1.050x** | **23,089,263 obs/s**<br>**24,111,600 obs/s** | **21,327,489 obs/s**<br>**22,961,000 obs/s** | 1,000,000 | 10,000 |
+| Cosine | log10 W Avg: **1.047x**<br>Peak Avg: **1.025x** | **21,228,563 obs/s**<br>**22,113,300 obs/s** | **20,280,469 obs/s**<br>**21,565,100 obs/s** | 100,000 | 10,000 |
+| Tangent | log10 W Avg: **1.226x**<br>Peak Avg: **1.140x** | **56,551,314 obs/s**<br>**60,454,400 obs/s** | **46,108,091 obs/s**<br>**53,031,900 obs/s** | 100,000 | 1,000 |
 
 ---
 
@@ -36,7 +39,7 @@ Reported numbers are both for log10 weighted average (up) and peak performance (
 
 ---
 
-## Binary Logartihmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/logloss.nb.html)
+## Binary Logartihmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/logloss.nb.html)
 
 ### Performance
 
@@ -107,7 +110,7 @@ cppFunction("double Lpp_logloss(NumericVector preds, NumericVector labels, doubl
 
 ---
 
-## Multiclass Logarithmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/mlogloss.nb.html)
+## Multiclass Logarithmic Loss: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/mlogloss.nb.html)
 
 ### Performance
 
@@ -181,7 +184,7 @@ Rcpp::cppFunction("double Lpp_mlogloss(NumericVector preds, NumericVector labels
 
 ---
 
-## Area Under the Curve (ROC): [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/roc.nb.html)
+## Area Under the Curve (ROC): [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/roc.nb.html)
 
 ### Performance
 
@@ -257,7 +260,7 @@ cppFunction("double Lpp_ROC(NumericVector preds, NumericVector labels) {
 
 ---
 
-## Vector to Matrix to Vector: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/vect2mat2vect.nb.html)
+## Vector to Matrix to Vector: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/vect2mat2vect.nb.html)
 
 ### Performance
 
@@ -320,5 +323,179 @@ Rcpp::cppFunction("NumericVector Lpp_vect2mat2vect(NumericVector preds, NumericV
   NumericVector to_return(labels_size);
   to_return = preds[selected];
   return to_return;
+}")
+```
+
+## Sine: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/sine.nb.html)
+
+### Performance
+
+Reported numbers (from log10 weighted average) are:
+
+* Rcpp is in average **8.261% faster** than R.
+* Rcpp has an estimated average throughput of **23,089,263** observations per second.
+* R has an estimated average throughput of **21,327,489** observations per second.
+* Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
+
+Reported numbers (from the peaks) are:
+* Rcpp function throughput peaks at **1,000,000** observations per call.
+* R function throughput peaks at **10,000** observations per call.
+* Rcpp is at peak throughput in average **5.011% faster** than R.
+* Rcpp has an estimated maximum throughput of **24,111,600** observations per second.
+* R has an estimated maximum throughput of **22,961,000** observations per second.
+
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ~5.000 | log10 W.Avg. | **1.083x** | --- | --- | **23.089 M/s** | 21.327 M/s |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ~2.000 | 100 | **1.150x** | **6.088 μs** | 7.002 μs | **16.425 M/s** | 14.281 M/s |
+| ~3.000 | 1,000 | **1.024x** | **44.963 μs** | 46.039 μs | **22.240 M/s** | 21.721 M/s |
+| ~4.000 | 10,000 | **1.023x** | **425.543 μs** | 435.522 μs | **23.499 M/s** | 22.961 M/s |
+| ~5.000 | 100,000 | **1.056x** | **4.160 ms** | 4.395 ms | **24.036 M/s** | 22.754 M/s |
+| ~6.000 | 1,000,000 | **1.154x** | **41.474 ms** | 47.870 ms | **24.112 M/s** | 20.890 M/s |
+| ~7.000 | 10,000,000 | **1.111x** | **415.696 ms** | 461.986 ms | **24.056 M/s** | 21.646 M/s |
+| ~8.000 | 100,000,000 | **1.065x** | **4.412  s** | 4.698  s | **22.664 M/s** | 21.283 M/s |
+
+### Rules (1,000,000 observations)
+
+For a 10-class vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector B:
+
+```
+B = sin(A)
+```
+
+### Best code
+
+`Lpp_sin(x)`:
+
+* x = your vector to apply `sin` on.
+
+```r
+cppFunction("NumericVector Lpp_sin(NumericVector x) {
+  return sin(x);
+}")
+```
+
+## Cosine: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/cosine.nb.html)
+
+### Performance
+
+Reported numbers (from log10 weighted average) are:
+
+* Rcpp is in average **4.675% faster** than R.
+* Rcpp has an estimated average throughput of **21,228,563** observations per second.
+* R has an estimated average throughput of **20,280,469** observations per second.
+* Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
+
+Reported numbers (from the peaks) are:
+* Rcpp function throughput peaks at **100,000** observations per call.
+* R function throughput peaks at **10,000** observations per call.
+* Rcpp is at peak throughput in average **2.542% faster** than R.
+* Rcpp has an estimated maximum throughput of **22,113,300** observations per second.
+* R has an estimated maximum throughput of **21,565,100** observations per second.
+
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ~5.000 | log10 W.Avg. | **1.047x** | --- | --- | **21.229 M/s** | 20.280 M/s |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ~2.000 | 100 | **1.013x** | **6.397 μs** | 6.477 μs | **15.633 M/s** | 15.439 M/s |
+| ~3.000 | 1,000 | 0.982x | 47.750 μs | **46.900 μs** | 20.943 M/s | **21.322 M/s** |
+| ~4.000 | 10,000 | **1.004x** | **461.730 μs** | 463.711 μs | **21.658 M/s** | 21.565 M/s |
+| ~5.000 | 100,000 | **1.044x** | **4.522 ms** | 4.722 ms | **22.113 M/s** | 21.175 M/s |
+| ~6.000 | 1,000,000 | **1.100x** | **45.341 ms** | 49.897 ms | **22.055 M/s** | 20.041 M/s |
+| ~7.000 | 10,000,000 | **1.098x** | **455.533 ms** | 500.070 ms | **21.952 M/s** | 19.997 M/s |
+| ~8.000 | 100,000,000 | **1.019x** | **4.828  s** | 4.920  s | **20.714 M/s** | 20.326 M/s |
+
+### Rules (1,000,000 observations)
+
+For a 10-class vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector B:
+
+```
+B = cos(A)
+```
+
+### Best code
+
+`Lpp_cos(x)`:
+
+* x = your vector to apply `cos` on.
+
+```r
+cppFunction("NumericVector Lpp_cos(NumericVector x) {
+  return cos(x);
+}")
+```
+
+## Tangent: [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/tangent.nb.html)
+
+### Performance
+
+Reported numbers (from log10 weighted average) are:
+
+* Rcpp is in average **22.649% faster** than R.
+* Rcpp has an estimated average throughput of **56,551,314** observations per second.
+* R has an estimated average throughput of **46,108,091** observations per second.
+* Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
+
+Reported numbers (from the peaks) are:
+* Rcpp function throughput peaks at **100,000** observations per call.
+* R function throughput peaks at **1,000** observations per call.
+* Rcpp is at peak throughput in average **13.996% faster** than R.
+* Rcpp has an estimated maximum throughput of **60,454,400** observations per second.
+* R has an estimated maximum throughput of **53,031,900** observations per second.
+
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ~5.000 | log10 W.Avg. | **1.226x** | --- | --- | **56.551 M/s** | 46.108 M/s |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ~2.000 | 100 | **1.328x** | **3.138 μs** | 4.167 μs | **31.869 M/s** | 23.999 M/s |
+| ~3.000 | 1,000 | **1.089x** | **17.309 μs** | 18.857 μs | **57.774 M/s** | 53.032 M/s |
+| ~4.000 | 10,000 | **1.131x** | **168.029 μs** | 190.062 μs | **59.514 M/s** | 52.614 M/s |
+| ~5.000 | 100,000 | **1.208x** | **1.654 ms** | 1.998 ms | **60.454 M/s** | 50.059 M/s |
+| ~6.000 | 1,000,000 | **1.355x** | **16.558 ms** | 22.429 ms | **60.394 M/s** | 44.586 M/s |
+| ~7.000 | 10,000,000 | **1.310x** | **166.267 ms** | 217.796 ms | **60.144 M/s** | 45.915 M/s |
+| ~8.000 | 100,000,000 | **1.172x** | **1.911  s** | 2.241  s | **52.317 M/s** | 44.628 M/s |
+
+### Rules (1,000,000 observations)
+
+For a 10-class vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector B:
+
+```
+B = tan(A)
+```
+
+### Best code
+
+`Lpp_tan(x)`:
+
+* x = your vector to apply `tan` on.
+
+```r
+cppFunction("NumericVector Lpp_tan(NumericVector x) {
+  return tan(x);
 }")
 ```

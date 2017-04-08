@@ -1,0 +1,225 @@
+---
+title: "Benchmarks: Cosine"
+output:
+  html_notebook:
+    collapsed: no
+    theme: united
+    toc: yes
+    toc_depth: 1
+    toc_float: yes
+---
+
+This notebook is all about benchmarking some R code used in this package.
+
+Hardware / Software used:
+
+* Intel i7-4600U
+* Compilation flags for C/C++: `-O2 -Wall $(DEBUGFLAG) -mtune=core2` (R's defaults)
+* Windows Server 2012 R2
+* R 3.3.2 + Intel MKL
+
+# Libraries
+
+```{r init}
+library(data.table)
+library(microbenchmark)
+library(Rcpp)
+library(ggplot2)
+```
+
+```{r based}
+
+# Helper function to print data well in tables
+print_well <- function(data, digits = 6) {
+  
+  # To milliseconds
+  data <- data / 1000000
+  
+  # Sprintf helper
+  sprintf_helper <- paste0("%.0", digits, "f")
+  
+  cat("| Min | 25% | 50% | 75% | Max | Mean |  \n| --: | --: | --: | --: | --: | --: |  \n| ", sprintf(sprintf_helper, min(data)), " | ", sprintf(sprintf_helper, quantile(data, probs = 0.25)), " | ", sprintf(sprintf_helper, median(data)), " | ", sprintf(sprintf_helper, quantile(data, probs = 0.75)), " | ", sprintf(sprintf_helper, max(data)), " | ", sprintf(sprintf_helper, mean(data)), " |  \n", sep = "")
+  
+  return(data)
+  
+}
+
+# Test case function
+# Arguments renamed to avoid recursive clash
+test_case <- function(f, x) {
+  cat("Test case: ", do.call(f, list(x = x[1:5])), "  \n", sep = "")
+}
+
+```
+
+# Benchmarking
+
+For a 2-class vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector B:
+
+```
+B = cos(A)
+```
+
+# Initialize data
+
+```{r bench1}
+
+# How many digits for benchmarking in milliseconds
+my_digits <- 6L
+
+# How many runs for benchmarking?
+my_runs <- 1000L
+
+# How many observations?
+my_obs <- 1000000L
+
+# Generate random data
+set.seed(11111)
+data <- runif(my_obs, 0, 1)
+
+```
+
+# Benchmarks
+
+```{r bench2, results="asis"}
+
+# ===== BLOCK 1 =====
+faster1 <- function(x) {
+  return(cos(x))
+}
+test_case(faster1, x = data)
+data1 <- print_well(microbenchmark(faster1(data), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 2 =====
+cppFunction("NumericVector faster2(NumericVector x) {
+  return cos(x);
+}")
+test_case(faster2, x = data)
+data2 <- print_well(microbenchmark(faster2(data), times = my_runs)$time, digits = my_digits)
+
+```
+
+# Summary Results
+
+```{r bench3}
+
+data_time <- data.table(rbindlist(list(data.frame(Time = data1, Bench = "faster1"),
+                                       data.frame(Time = data2, Bench = "faster2"))))
+data_time <- data_time[, t_mean := mean(Time), by = Bench]
+data_time <- data_time[, t_median := median(Time), by = Bench]
+data_time$Benchs <- data_time$Bench 
+levels(data_time$Benchs) <- paste0("faster", 1:2, "= [", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(min(Time)), by = Bench]$V1), ", ", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(max(Time)), by = Bench]$V1), "], mean=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(mean(Time)), by = Bench]$V1), ", median=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(median(Time)), by = Bench]$V1))
+
+my_time <- data_time[, list(min(Time), quantile(Time, probs = 0.25), median(Time), quantile(Time, probs = 0.75), max(Time), mean(Time)), by = Bench]
+colnames(my_time) <- c("Function", "Min", "25%", "50%", "75%", "Max", "Mean")
+my_time <- my_time[order(Mean, decreasing = FALSE), ]
+print(my_time, digits = 6)
+
+```
+
+# Plot Results
+
+```{r bench4, fig.height=3, fig.width=10}
+
+ggplot(data = data_time, aes(x = Time)) + geom_histogram(aes(y = ..density..), bins = 20, color = "darkblue", fill = "lightblue") + facet_wrap(~ Benchs, ncol = 2) + geom_vline(aes(xintercept = t_mean), color = "blue", linetype = "dashed", size = 2) + geom_vline(aes(xintercept = t_median), color = "red", linetype = "dashed", size = 2) + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
+
+```
+
+```{r bench5, fig.height=6, fig.width=10}
+ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_histogram(aes(y = ..density..), bins = 100, position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
+```
+
+```{r bench6, fig.height=6, fig.width=10}
+ggplot(data = data_time[, .(Time, Bench)], aes(x = Time, y = ..count.., fill = Bench)) + geom_density(position = "fill") + labs(x = "Time (Milliseconds)", y = "Density") + theme_bw()
+```
+
+```{r bench7, fig.height=6, fig.width=10}
+
+data_time$MilObs <- (1000 / data_time$Time) * my_obs / 1000000
+ggplot(data_time[, .(Bench, MilObs)], aes(x = Bench, y = MilObs, fill = Bench)) + geom_boxplot() + labs(x = "Benchmark", y = "Throughput (Million Obs./s)") + theme_bw()
+
+```
+
+# Scaling Benchmarks
+
+```{r bench_scale1}
+
+Benchmarker <- function(f, size, runs, digits, name) {
+  
+  data_runs <- list()
+  
+  for (i in 1:length(size)) {
+    set.seed(11111)
+    data <- runif(size[i], 0, 1)
+    cat("  \n  \n## ", name, " run: ",format(size[i], big.mark = ",", scientific = FALSE), " samples (", format(runs[i], big.mark = ",", scientific = FALSE), " times)  \n  \n", sep = "")
+    test_case(f, x = data)
+    cat("  \n")
+    data_runs[[i]] <- print_well(microbenchmark(f(data), times = runs[i])$time, digits = digits)
+    data_runs[[i]] <- data.table(Bench = as.factor(paste0("[", i, "] ", format(size[i], big.mark = ",", scientific = FALSE))), Function = as.factor(name), Time = data_runs[[i]])
+    gc(verbose = FALSE)
+  }
+  
+  return(data_runs)
+  
+}
+
+bench_size <- c(100, 1000, 10000, 100000, 1000000, 10000000, 100000000)
+bench_runs <- c(50000, 25000, 10000, 5000, 1000, 100, 10)
+
+```
+
+```{r bench_scale2, results="asis"}
+
+run1 <- Benchmarker(faster1, bench_size, bench_runs, my_digits, "Pure R")
+run2 <- Benchmarker(faster2, bench_size, bench_runs, my_digits, "Rcpp")
+
+```
+
+# Scaling Results
+
+```{r bench_scale3}
+
+run1_all <- rbindlist(run1)
+run2_all <- rbindlist(run2)
+run_all <- rbind(run1_all, run2_all)
+run_all$Repeats <- rep(inverse.rle(list(lengths = bench_runs, values = bench_size)), 2)
+run_all$MilObs <- (1000 / run_all$Time) * run_all$Repeats / 1000000
+run_time <- run_all[, list(quantile(Time, probs = 0.05), median(Time), quantile(Time, probs = 0.95), mean(Time)), by = list(Function, Bench)]
+colnames(run_time) <- c("Function", "Benchmark", "5%", "50%", "95%", "Mean")
+run_time$`Mil.Obs/s` <- (1000 / run_time$Mean) * bench_size / 1000000
+run_time$`5%` <- format(run_time$`5%`, digits = 6, scientific = FALSE)
+run_time$`50%` <- format(run_time$`50%`, digits = 6, scientific = FALSE)
+run_time$`95%` <- format(run_time$`95%`, digits = 6, scientific = FALSE)
+run_time$Mean <- format(run_time$Mean, digits = 6, scientific = FALSE)
+run_time$`Mil.Obs/s` <- format(run_time$`Mil.Obs/s`, digits = 6, scientific = FALSE)
+
+print(run_time[1:(nrow(run_time) / 2)])
+print(run_time[(nrow(run_time) / 2 + 1):nrow(run_time)])
+
+```
+
+```{r bench_scale4, fig.height=6, fig.width=10}
+
+ggplot(run_all, aes(x = Bench, y = Time, color = Function, fill = Bench)) + geom_boxplot() + scale_y_log10(labels = scales::comma, breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) + stat_summary(fun.y = mean, geom = "line", aes(group = Function)) + stat_summary(fun.y = mean, geom = "point", aes(group = Function)) + labs(x = "Benchmark", y = "Time (Milliseconds)") + theme_bw()
+
+```
+
+```{r bench_scale5, fig.height=6, fig.width=10}
+
+ggplot(run_all, aes(x = Bench, y = MilObs, color = Function, fill = Bench)) + geom_boxplot() + scale_y_log10(labels = scales::comma, breaks = c(5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30), limits = c(5, NA)) + stat_summary(fun.y = mean, geom = "line", aes(group = Function)) + stat_summary(fun.y = mean, geom = "point", aes(group = Function)) + labs(x = "Benchmark", y = "Throughput (Million Obs./s)") + theme_bw()
+
+```
+
+```{r bench_scale6, fig.height=6, fig.width=10}
+
+ggplot(data = run_all, aes(x = MilObs, color = Function, fill = Function, group = Function)) + coord_flip() + stat_ecdf(aes(ymin = ..y.., ymax = 1), alpha = 0.5, geom = "ribbon") + stat_ecdf(geom = "line", size = 2, alpha = 0.75, pad = FALSE) + labs(x = "Throughput (Million Obs./s)", y = "Percentile") + facet_wrap(~ Bench, dir = "h", ncol = 2, scales = "free") + theme_bw()
+
+```
