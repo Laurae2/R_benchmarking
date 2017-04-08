@@ -69,6 +69,8 @@ Reported numbers (from the peaks) are:
 | ~7.000 | 10,000,000 | **1.208x** | **558.664 ms** | 674.816 ms | **17.900 M/s** | 14.819 M/s |
 | ~8.000 | 100,000,000 | **1.188x** | **5.496  s** | 6.530  s | **18.197 M/s** | 15.314 M/s |
 
+![Image](pictures/logloss.png)
+
 ### Rules (1,000,000 observations)
 
 For a 2-class vector of 1,000,000 observations:
@@ -138,6 +140,8 @@ Reported numbers (from the peaks) are:
 | ~5.000 | 100,000 | **1.139x** | **6.448 ms** | 7.341 ms | **15.509 M/s** | 13.622 M/s |
 | ~6.000 | 1,000,000 | **1.149x** | **64.718 ms** | 74.377 ms | **15.452 M/s** | 13.445 M/s |
 | ~7.000 | 10,000,000 | **1.129x** | **763.214 ms** | 861.487 ms | **13.102 M/s** | 11.608 M/s |
+
+![Image](pictures/mlogloss.png)
 
 ### Rules (1,000,000 observations)
 
@@ -212,6 +216,8 @@ Reported numbers (from the peaks) are:
 | ~5.000 | 100,000 | **1.217x** | **19.980 ms** | 24.309 ms | **5.005 M/s** | 4.114 M/s |
 | ~6.000 | 1,000,000 | **2.109x** | **327.093 ms** | 689.814 ms | **3.057 M/s** | 1.450 M/s |
 | ~7.000 | 10,000,000 | **3.252x** | **3.723  s** | 12.108  s | **2,685.830 K/s** | 825.897 K/s |
+
+![Image](pictures/roc.png)
 
 ### Rules (500,000 observations)
 
@@ -289,6 +295,8 @@ Reported numbers (from the peaks) are:
 | ~6.000 | 1,000,000 | **1.269x** | **18.539 ms** | 23.534 ms | **53.942 M/s** | 42.492 M/s |
 | ~7.000 | 10,000,000 | **1.144x** | **240.559 ms** | 275.188 ms | **41.570 M/s** | 36.339 M/s |
 
+![Image](pictures/vect2mat2vect.png)
+
 ### Rules (1,000,000 observations)
 
 For a 10-class vector of 1,000,000 observations:
@@ -356,6 +364,8 @@ Reported numbers (from the peaks) are:
 | ~7.000 | 10,000,000 | **1.111x** | **415.696 ms** | 461.986 ms | **24.056 M/s** | 21.646 M/s |
 | ~8.000 | 100,000,000 | **1.065x** | **4.412  s** | 4.698  s | **22.664 M/s** | 21.283 M/s |
 
+![Image](pictures/sine.png)
+
 ### Rules (1,000,000 observations)
 
 For a 10-class vector of 1,000,000 observations:
@@ -414,6 +424,8 @@ Reported numbers (from the peaks) are:
 | ~7.000 | 10,000,000 | **1.098x** | **455.533 ms** | 500.070 ms | **21.952 M/s** | 19.997 M/s |
 | ~8.000 | 100,000,000 | **1.019x** | **4.828  s** | 4.920  s | **20.714 M/s** | 20.326 M/s |
 
+![Image](pictures/cosine.png)
+
 ### Rules (1,000,000 observations)
 
 For a 10-class vector of 1,000,000 observations:
@@ -471,6 +483,8 @@ Reported numbers (from the peaks) are:
 | ~6.000 | 1,000,000 | **1.355x** | **16.558 ms** | 22.429 ms | **60.394 M/s** | 44.586 M/s |
 | ~7.000 | 10,000,000 | **1.310x** | **166.267 ms** | 217.796 ms | **60.144 M/s** | 45.915 M/s |
 | ~8.000 | 100,000,000 | **1.172x** | **1.911  s** | 2.241  s | **52.317 M/s** | 44.628 M/s |
+
+![Image](pictures/tangent.png)
 
 ### Rules (1,000,000 observations)
 
