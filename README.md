@@ -8,7 +8,7 @@ Hardware / Software used:
 * Intel i7-4600U
 * Compilation flags for C/C++: `-O2 -mtune=core2` (R’s defaults)
 * Windows 8.1 64-bit
-* R 3.3.2 + Intel MKL
+* R 3.3.2 + Intel MKL (unless said otherwise)
 * Rtools 34 + gcc 4.9
 
 *Note: the metrics are tuned for speed. Algorithm wise, interpretability might be lost.<br>Which means if you were to explain, you will have issues.*
@@ -257,6 +257,140 @@ cppFunction("double Lpp_ROC(NumericVector preds, NumericVector labels) {
   ranked = match(ranked, clone(ranked).sort());
   double AUC = (sum(ranked[positives_seq]) - n1 * (n1 + 1)/2)/(n1 * n2);
   return AUC;
+}")
+```
+
+---
+
+## Symmetric Mean Average Percentage Error (SMAPE with R 3.3.2, gcc 4.9): [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/smape_3.3.2mkl.nb.html)
+
+### Performance
+
+Reported numbers (from log10 weighted average) are:
+
+* Rcpp is in average **20.273% faster** than R.
+* Rcpp has an estimated average throughput of **56,639,800** observations per second.
+* R has an estimated average throughput of **47,092,680** observations per second.
+* Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
+
+Reported numbers (from the peaks) are:
+* Rcpp function throughput peaks at **100,000** observations per call.
+* R function throughput peaks at **10,000** observations per call.
+* Rcpp is at peak throughput in average **9.000% slower** than R.
+* Rcpp has an estimated maximum throughput of **65,822,400** observations per second.
+* R has an estimated maximum throughput of **72,332,200** observations per second.
+
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ~5.000 | log10 W.Avg. | **1.203x** | --- | --- | **56.640 M/s** | 47.093 M/s |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ~2.000 | 100 | **2.014x** | **3.536 μs** | 7.123 μs | **28.278 M/s** | 14.039 M/s |
+| ~3.000 | 1,000 | 0.920x | 18.495 μs | **17.008 μs** | 54.069 M/s | **58.797 M/s** |
+| ~4.000 | 10,000 | 0.814x | 169.814 μs | **138.251 μs** | 58.888 M/s | **72.332 M/s** |
+| ~5.000 | 100,000 | **1.076x** | **1.519 ms** | 1.634 ms | **65.822 M/s** | 61.198 M/s |
+| ~6.000 | 1,000,000 | **1.479x** | **15.879 ms** | 23.481 ms | **62.978 M/s** | 42.589 M/s |
+| ~7.000 | 10,000,000 | **1.718x** | **159.102 ms** | 273.302 ms | **62.853 M/s** | 36.590 M/s |
+| ~8.000 | 100,000,000 | **1.132x** | **2.099  s** | 2.375  s | **47.641 M/s** | 42.100 M/s |
+
+![Image](pictures/smape_3.3.2mkl.png)
+
+### Rules (1,000,000 observations)
+
+For a regression vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+* Vector B of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+B = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector C:
+
+C = SMAPE of A and B
+
+### Best code
+
+`Lpp_ROC(preds, labels)`:
+
+* preds = your predictions
+* labels = your labels (binary, 0 or 1)
+
+```r
+cppFunction("double Lpp_SMAPE(NumericVector preds, NumericVector labels) {
+  NumericVector zeroes = abs(labels) + abs(preds);
+  NumericVector divide = abs(labels - preds) / zeroes;
+  divide[zeroes == 0] = 0;
+  double loss = 2 * sum(divide) / divide.size();
+  return(loss);
+}")
+```
+
+---
+
+## Symmetric Mean Average Percentage Error (SMAPE with R 3.4.0 precompiled, gcc 7.1): [benchmarks](https://htmlpreview.github.io/?https://github.com/Laurae2/R_benchmarking/blob/master/benchmarks/smape_3.4.0.nb.html)
+
+### Performance
+
+Reported numbers (from log10 weighted average) are:
+
+* Rcpp is in average **16.520% faster** than R.
+* Rcpp has an estimated average throughput of **56,946,786** observations per second.
+* R has an estimated average throughput of **48,872,971** observations per second.
+* Fastest functions only. Compiled with `-O2 -mtune=core2` flags (R's defaults).
+
+Reported numbers (from the peaks) are:
+* Rcpp function throughput peaks at **100,000** observations per call.
+* R function throughput peaks at **10,000** observations per call.
+* Rcpp is at peak throughput in average **15.841% slower** than R.
+* Rcpp has an estimated maximum throughput of **66,099,100** observations per second.
+* R has an estimated maximum throughput of **78,540,700** observations per second.
+
+| Log10 | Samples | Throughput+ | Rcpp Time | Pure R Time | Rcpp Throughput | Pure R Throughput |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ~5.000 | log10 W.Avg. | **1.165x** | --- | --- | **56.947 M/s** | 48.873 M/s |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ~2.000 | 100 | **1.129x** | **3.619 μs** | 4.087 μs | **27.631 M/s** | 24.470 M/s |
+| ~3.000 | 1,000 | 0.769x | 18.973 μs | **14.591 μs** | 52.707 M/s | **68.536 M/s** |
+| ~4.000 | 10,000 | 0.758x | 167.941 μs | **127.322 μs** | 59.545 M/s | **78.541 M/s** |
+| ~5.000 | 100,000 | **1.033x** | **1.513 ms** | 1.563 ms | **66.099 M/s** | 63.967 M/s |
+| ~6.000 | 1,000,000 | **1.602x** | **15.690 ms** | 25.127 ms | **63.737 M/s** | 39.798 M/s |
+| ~7.000 | 10,000,000 | **1.768x** | **157.766 ms** | 278.990 ms | **63.385 M/s** | 35.844 M/s |
+| ~8.000 | 100,000,000 | **1.158x** | **2.078  s** | 2.407  s | **48.121 M/s** | 41.540 M/s |
+
+![Image](pictures/smape_3.4.0.png)
+
+### Rules (1,000,000 observations)
+
+For a regression vector of 1,000,000 observations:
+
+* Vector A of length=(1000000)
+* Vector B of length=(1000000)
+
+```
+A = [1, 2, 3, 4, ..., 1000000]
+B = [1, 2, 3, 4, ..., 1000000]
+```
+
+Get the following Vector C:
+
+C = SMAPE of A and B
+
+### Best code
+
+`Lpp_ROC(preds, labels)`:
+
+* preds = your predictions
+* labels = your labels (binary, 0 or 1)
+
+```r
+cppFunction("double Lpp_SMAPE(NumericVector preds, NumericVector labels) {
+  NumericVector zeroes = abs(labels) + abs(preds);
+  NumericVector divide = abs(labels - preds) / zeroes;
+  divide[zeroes == 0] = 0;
+  double loss = 2 * sum(divide) / divide.size();
+  return(loss);
 }")
 ```
 
