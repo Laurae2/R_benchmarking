@@ -62,7 +62,7 @@ From a regression vector of 1,000,000 observations:
 
 ```
 A = [1, 2, 3, 4, ..., 1000000]
-B = [0, 1, 1, 0, ...]
+B = [1, 2, 3, 4, ..., 1000000]
 ```
 
 Get the following Vector C:
@@ -127,37 +127,58 @@ data3 <- print_well(microbenchmark(faster3(data, labels), times = my_runs)$time,
 
 # ===== BLOCK 4 =====
 faster4 <- function(preds, labels) {
-  zeroes <- abs(labels - preds) / (abs(labels) + abs(preds))
+  zeroes <- abs(labels - preds) / ((abs(labels) + abs(preds)) / 2)
   zeroes[is.na(zeroes)] <- 0
-  return(2 * sum(zeroes) / length(zeroes))
+  return(sum(zeroes) / length(zeroes))
 }
 test_case(faster4, preds = data, labels = labels)
 data4 <- print_well(microbenchmark(faster4(data, labels), times = my_runs)$time, digits = my_digits)
 
 # ===== BLOCK 5 =====
-cppFunction("double faster5(NumericVector preds, NumericVector labels) {
-  int labels_size = labels.size();
-  NumericVector zeroes(labels_size);
-  NumericVector divide(labels_size);
-  zeroes = abs(labels) + abs(preds);
-  divide = abs(labels - preds) / zeroes;
-  divide[zeroes == 0] = 0;
-  double loss = 2 * sum(divide) / divide.size();
-  return(loss);
-}")
+faster5 <- function(preds, labels) {
+  zeroes <- abs(labels - preds) / (abs(labels) + abs(preds))
+  zeroes <- sum(zeroes, na.rm = T)
+  return(zeroes * 2 / length(labels))
+}
 test_case(faster5, preds = data, labels = labels)
 data5 <- print_well(microbenchmark(faster5(data, labels), times = my_runs)$time, digits = my_digits)
 
 # ===== BLOCK 6 =====
-cppFunction("double faster6(NumericVector preds, NumericVector labels) {
+faster6 <- function(preds, labels) {
+  zeroes <- abs(labels - preds)
+  zeroes <- zeroes / (abs(labels) + abs(preds))
+  zeroes <- sum(zeroes, na.rm = T)
+  return(zeroes * 2 / length(labels))
+}
+test_case(faster6, preds = data, labels = labels)
+data6 <- print_well(microbenchmark(faster6(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 7 =====
+cppFunction("double faster7(NumericVector preds, NumericVector labels) {
   NumericVector zeroes = abs(labels) + abs(preds);
   NumericVector divide = abs(labels - preds) / zeroes;
   divide[zeroes == 0] = 0;
   double loss = 2 * sum(divide) / divide.size();
   return(loss);
 }")
-test_case(faster6, preds = data, labels = labels)
-data6 <- print_well(microbenchmark(faster6(data, labels), times = my_runs)$time, digits = my_digits)
+test_case(faster7, preds = data, labels = labels)
+data7 <- print_well(microbenchmark(faster6(data, labels), times = my_runs)$time, digits = my_digits)
+
+# ===== BLOCK 8 =====
+cppFunction("double faster8(NumericVector preds, NumericVector labels) {
+  int labels_size = labels.size();
+  NumericVector zeroes(labels_size);
+  zeroes = (abs(labels - preds)) / (abs(labels) + abs(preds));
+  LogicalVector nan = is_nan(zeroes);
+  double loss = 0;
+  for (int i = 0; i < labels_size; i++) {
+    if (!nan[i])
+      loss += zeroes[i];
+  }
+  return(2 * loss / labels_size);
+}")
+test_case(faster8, preds = data, labels = labels)
+data8 <- print_well(microbenchmark(faster8(data, labels), times = my_runs)$time, digits = my_digits)
 
 ```
 
@@ -170,11 +191,13 @@ data_time <- data.table(rbindlist(list(data.frame(Time = data1, Bench = "faster1
                                        data.frame(Time = data3, Bench = "faster3"),
                                        data.frame(Time = data4, Bench = "faster4"),
                                        data.frame(Time = data5, Bench = "faster5"),
-                                       data.frame(Time = data6, Bench = "faster6"))))
+                                       data.frame(Time = data6, Bench = "faster6"),
+                                       data.frame(Time = data7, Bench = "faster7"),
+                                       data.frame(Time = data8, Bench = "faster8"))))
 data_time <- data_time[, t_mean := mean(Time), by = Bench]
 data_time <- data_time[, t_median := median(Time), by = Bench]
 data_time$Benchs <- data_time$Bench 
-levels(data_time$Benchs) <- paste0("faster", 1:6, "= [", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(min(Time)), by = Bench]$V1), ", ", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(max(Time)), by = Bench]$V1), "], mean=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(mean(Time)), by = Bench]$V1), ", median=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(median(Time)), by = Bench]$V1))
+levels(data_time$Benchs) <- paste0("faster", 1:8, "= [", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(min(Time)), by = Bench]$V1), ", ", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(max(Time)), by = Bench]$V1), "], mean=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(mean(Time)), by = Bench]$V1), ", median=", sprintf(paste0("%.0", my_digits, "f"), data_time[, list(median(Time)), by = Bench]$V1))
 
 my_time <- data_time[, list(min(Time), quantile(Time, probs = 0.25), median(Time), quantile(Time, probs = 0.75), max(Time), mean(Time)), by = Bench]
 colnames(my_time) <- c("Function", "Min", "25%", "50%", "75%", "Max", "Mean")
@@ -237,8 +260,8 @@ bench_runs <- c(100000, 50000, 10000, 5000, 1000, 500, 100)
 
 ```{r bench_scale2, results="asis"}
 
-run1 <- Benchmarker(faster4, bench_size, bench_runs, my_digits, "Pure R")
-run2 <- Benchmarker(faster6, bench_size, bench_runs, my_digits, "Rcpp")
+run1 <- Benchmarker(faster6, bench_size, bench_runs, my_digits, "Pure R")
+run2 <- Benchmarker(faster8, bench_size, bench_runs, my_digits, "Rcpp")
 
 ```
 
